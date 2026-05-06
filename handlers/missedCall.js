@@ -1,21 +1,21 @@
 const { getGarageByNumber } = require('../db/garages');
 const { addMessage } = require('../db/conversations');
-const { sendSMS } = require('../config/twilio');
 const { VoiceResponse } = require('twilio').twiml;
+const twilio = require('twilio');
+
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const WHATSAPP_SANDBOX = 'whatsapp:+14155238886';
 
 async function handleMissedCall(req, res) {
-  // Always respond to Twilio immediately
+  // Respond to Twilio immediately
   res.type('text/xml').send(new VoiceResponse().toString());
 
   try {
     const callerPhone  = req.body.From;
     const twilioNumber = req.body.To;
-    const callStatus   = req.body.CallStatus;
 
-    console.log(`📞 Incoming: ${callerPhone} → ${twilioNumber} [${callStatus}]`);
-    console.log('Full payload:', JSON.stringify(req.body));
+    console.log(`📞 Missed call from ${callerPhone}`);
 
-    // Find the garage
     const garage = await getGarageByNumber(twilioNumber);
     if (!garage) {
       console.error(`❌ No garage found for ${twilioNumber}`);
@@ -23,15 +23,17 @@ async function handleMissedCall(req, res) {
     }
     console.log('✅ Garage found:', garage.name);
 
-    // Send first SMS regardless of call status
     const firstMessage = `Hi! Sorry we missed your call at ${garage.name} 👋 What does your car need? Reply here and we'll sort you out right away.`;
-    
-    console.log('Sending SMS to:', callerPhone);
-    await sendSMS(callerPhone, twilioNumber, firstMessage);
-    console.log('✅ SMS sent!');
 
+    // Send via WhatsApp instead of SMS
+    await client.messages.create({
+      from: WHATSAPP_SANDBOX,
+      to: `whatsapp:${callerPhone}`,
+      body: firstMessage,
+    });
+
+    console.log('✅ WhatsApp message sent to', callerPhone);
     await addMessage(callerPhone, 'assistant', firstMessage);
-    console.log('✅ Message saved to DB');
 
   } catch (err) {
     console.error('❌ ERROR:', err.message);
