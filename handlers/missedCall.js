@@ -1,13 +1,30 @@
 const { getGarageByNumber } = require('../db/garages');
 const { addMessage } = require('../db/conversations');
 const { VoiceResponse } = require('twilio').twiml;
-const twilio = require('twilio');
+const axios = require('axios');
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const WHATSAPP_SANDBOX = 'whatsapp:+14155238886';
+async function sendWhatsAppMessage(to, message) {
+  const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
+  const accessToken = process.env.META_ACCESS_TOKEN;
+
+  await axios.post(
+    `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
+    {
+      messaging_product: 'whatsapp',
+      to: to.replace('+', ''),
+      type: 'text',
+      text: { body: message }
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+}
 
 async function handleMissedCall(req, res) {
-  // Respond to Twilio immediately
   res.type('text/xml').send(new VoiceResponse().toString());
 
   try {
@@ -23,21 +40,16 @@ async function handleMissedCall(req, res) {
     }
     console.log('✅ Garage found:', garage.name);
 
-    const firstMessage = `Hi! Sorry we missed your call at ${garage.name} 👋 What does your car need? Reply here and we'll sort you out right away.`;
+    const firstMessage = `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need? Reply here and we'll sort you out right away.`;
 
-    // Send via WhatsApp instead of SMS
-    await client.messages.create({
-      from: WHATSAPP_SANDBOX,
-      to: `whatsapp:${callerPhone}`,
-      body: firstMessage,
-    });
+    await sendWhatsAppMessage(callerPhone, firstMessage);
+    console.log('✅ WhatsApp sent to', callerPhone);
 
-    console.log('✅ WhatsApp message sent to', callerPhone);
     await addMessage(callerPhone, 'assistant', firstMessage);
 
   } catch (err) {
     console.error('❌ ERROR:', err.message);
-    console.error('Stack:', err.stack);
+    if (err.response) console.error('Meta API error:', err.response.data);
   }
 }
 
