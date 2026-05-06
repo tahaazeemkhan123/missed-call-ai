@@ -3,9 +3,9 @@
 const garages = [
   {
     id: 'garage_001',
-    name: "Mike's Auto Repair",
-    twilioNumber: '+19715551234',   // Twilio number you bought for this garage
-    ownerPhone: '+19715559999',     // Owner's number for lead notifications
+    name: "Dyno Star",
+    twilioNumber: '+12497010798',   // Twilio number you bought for this garage
+    ownerPhone: '+971568967912',     // Owner's number for lead notifications
     hours: 'Monday to Friday, 8am to 6pm. Saturday 9am to 3pm. Closed Sunday.',
     services: 'Oil changes, brakes, tyres, engine diagnostics, AC repair, suspension',
     bookingLink: 'https://calendly.com/mikesauto',
