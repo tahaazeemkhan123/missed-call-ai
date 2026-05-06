@@ -20,7 +20,7 @@ async function handleMissedCall(req, res) {
       return res.type('text/xml').send(new VoiceResponse().toString());
     }
 
-    const garage = getGarageByNumber(twilioNumber);
+    const garage = await getGarageByNumber(twilioNumber);
     if (!garage) {
       console.error(`No garage found for ${twilioNumber}`);
       return res.type('text/xml').send(new VoiceResponse().toString());
