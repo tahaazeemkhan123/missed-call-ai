@@ -16,17 +16,17 @@ async function handleSmsReply(req, res) {
 
     console.log(`💬 SMS from ${customerPhone}: "${customerMessage}"`);
 
-    const garage = getGarageByNumber(twilioNumber);
+    const garage = await getGarageByNumber(twilioNumber);
     if (!garage) {
       console.error(`No garage found for ${twilioNumber}`);
       return res.type('text/xml').send(new MessagingResponse().toString());
     }
 
     // Get existing conversation history
-    const history = getHistory(customerPhone);
+    const history = await getHistory(customerPhone);
 
     // Save customer's message
-    addMessage(customerPhone, 'user', customerMessage);
+    await addMessage(customerPhone, 'user', customerMessage);
 
     // Get Claude's reply
     const aiReply = await askClaude(garage, history, customerMessage);
