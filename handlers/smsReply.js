@@ -14,15 +14,10 @@ async function handleWhatsAppReply(req, res) {
   try {
     const customerPhone   = req.body.From.replace('whatsapp:', '');
     const customerMessage = req.body.Body;
-    const twilioNumber    = req.body.To.replace('whatsapp:', '');
 
     console.log(`💬 WhatsApp from ${customerPhone}: "${customerMessage}"`);
 
-    const garage = await getGarageByNumber(twilioNumber);
-    if (!garage) {
-      console.error(`❌ No garage found for ${twilioNumber}`);
-      return;
-    }
+    const garage = await getGarageByNumber('+12497010798');
 
     const history = await getHistory(customerPhone);
     await addMessage(customerPhone, 'user', customerMessage);
