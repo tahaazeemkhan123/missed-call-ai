@@ -4,11 +4,27 @@ const garages = [
   {
     id: 'garage_001',
     name: "Dyno Star",
-    twilioNumber: '+12497010798',   // Twilio number you bought for this garage
-    ownerPhone: '+971568967912',     // Owner's number for lead notifications
-    hours: 'Monday to Friday, 8am to 6pm. Saturday 9am to 3pm. Closed Sunday.',
-    services: 'Oil changes, brakes, tyres, engine diagnostics, AC repair, suspension',
-    bookingLink: 'https://calendly.com/mikesauto',
+    twilioNumber: '+12497010798',
+    ownerPhone: '+971568967912',
+    hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
+    services: `Full car repair and maintenance including:
+- Engine diagnostics and repair
+- Gearbox and transmission repair
+- Suspension and steering
+- Brake service and repair
+- Oil and filter changes
+- AC service and repair
+- Electrical diagnostics and repair
+- Battery testing and replacement
+- Windscreen and glass repair/replacement
+- Body work, dent removal and panel beating
+- Car painting (full and partial)
+- Car wrapping (full and partial)
+- PPF (Paint Protection Film)
+- Ceramic coating and paint detailing
+- Full car servicing (minor and major)
+- All car brands and models welcome`,
+    bookingLink: 'https://wa.me/971568967912',
     city: 'Dubai',
     language: 'English',
   },
@@ -19,7 +35,7 @@ const garages = [
   //   name: "Speed Motors",
   //   twilioNumber: '+19715555678',
   //   ownerPhone: '+971505551234',
-  //   hours: 'Saturday to Thursday, 9am to 7pm.',
+  //   hours: 'Saturday to Thursday, 9am to 7pm. Closed Fridays.',
   //   services: 'BMW, Mercedes specialist. Engine, gearbox, electrical',
   //   bookingLink: 'https://wa.me/971505551234',
   //   city: 'Dubai',
