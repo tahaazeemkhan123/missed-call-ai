@@ -1,54 +1,48 @@
-// handlers/smsReply.js
-// Fires every time the customer texts back.
-// Loads conversation history → asks Claude → sends reply.
-
-const { getGarageByNumber }      = require('../db/garages');
+const { getGarageByNumber } = require('../db/garages');
 const { getHistory, addMessage } = require('../db/conversations');
-const { askClaude }              = require('../config/claude');
-const { sendSMS, notifyOwner }   = require('../config/twilio');
-const { MessagingResponse }      = require('twilio').twiml;
+const { askClaude } = require('../config/claude');
+const { MessagingResponse } = require('twilio').twiml;
+const twilio = require('twilio');
 
-async function handleSmsReply(req, res) {
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const WHATSAPP_SANDBOX = 'whatsapp:+14155238886';
+
+async function handleWhatsAppReply(req, res) {
+  // Respond to Twilio immediately
+  res.type('text/xml').send(new MessagingResponse().toString());
+
   try {
-    const customerPhone   = req.body.From;
-    const twilioNumber    = req.body.To;
+    const customerPhone   = req.body.From.replace('whatsapp:', '');
     const customerMessage = req.body.Body;
+    const twilioNumber    = req.body.To.replace('whatsapp:', '');
 
-    console.log(`💬 SMS from ${customerPhone}: "${customerMessage}"`);
+    console.log(`💬 WhatsApp from ${customerPhone}: "${customerMessage}"`);
 
     const garage = await getGarageByNumber(twilioNumber);
     if (!garage) {
-      console.error(`No garage found for ${twilioNumber}`);
-      return res.type('text/xml').send(new MessagingResponse().toString());
+      console.error(`❌ No garage found for ${twilioNumber}`);
+      return;
     }
 
-    // Get existing conversation history
     const history = await getHistory(customerPhone);
-
-    // Save customer's message
     await addMessage(customerPhone, 'user', customerMessage);
 
-    // Get Claude's reply
     const aiReply = await askClaude(garage, history, customerMessage);
+    console.log('🤖 AI reply:', aiReply);
 
-    // Save Claude's reply
-    addMessage(customerPhone, 'assistant', aiReply);
+    await client.messages.create({
+      from: WHATSAPP_SANDBOX,
+      to: `whatsapp:${customerPhone}`,
+      body: aiReply,
+    });
 
-    // Send reply to customer
-    await sendSMS(customerPhone, twilioNumber, aiReply);
-
-    // Notify owner on first customer reply (not every message)
-    if (history.length <= 1) {
-      await notifyOwner(garage, customerPhone, customerMessage);
-    }
-
-    console.log(`✅ Replied to ${customerPhone}: "${aiReply}"`);
-    res.type('text/xml').send(new MessagingResponse().toString());
+    await addMessage(customerPhone, 'assistant', aiReply);
+    console.log('✅ WhatsApp reply sent to', customerPhone);
 
   } catch (err) {
-    console.error('handleSmsReply error:', err.message);
-    res.status(500).send('Error');
+    console.error('❌ ERROR:', err.message);
+    console.error('Stack:', err.stack);
   }
 }
 
-module.exports = { handleSmsReply };
+module.exports = { handleWhatsAppReply };
