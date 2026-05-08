@@ -3,7 +3,7 @@
 const garages = [
   {
     id: 'garage_001',
-    name: "Dyno Star",
+    name: "Aster Auto Garage",
     twilioNumber: '+12497010798',
     ownerPhone: '+971527539149',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
