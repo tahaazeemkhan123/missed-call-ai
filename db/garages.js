@@ -3,9 +3,9 @@
 const garages = [
   {
     id: 'garage_001',
-    name: "Aster Auto Garage",
+    name: "The Car Lab",
     twilioNumber: '+12497010798',
-    ownerPhone: '+971527539149',
+    ownerPhone: '+971567127171',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: `Full car repair and maintenance including:
 - Engine diagnostics and repair
