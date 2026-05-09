@@ -3,9 +3,9 @@
 const garages = [
   {
     id: 'garage_001',
-    name: "The Car Lab",
+    name: "Auto Doctor",
     twilioNumber: '+12497010798',
-    ownerPhone: '+971567127171',
+    ownerPhone: '+971508892456',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: `Full car repair and maintenance including:
 - Engine diagnostics and repair
