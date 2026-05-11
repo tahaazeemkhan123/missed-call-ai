@@ -5,7 +5,7 @@ const garages = [
     id: 'garage_001',
     name: "Asad Auto Services",
     twilioNumber: '+12497010798',
-    ownerPhone: '+923334718444',
+    ownerPhone: 'Oscar Legacy Auto',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: `Full car repair and maintenance including:
 - Engine diagnostics and repair
