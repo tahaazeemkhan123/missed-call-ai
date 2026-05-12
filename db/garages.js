@@ -3,9 +3,9 @@
 const garages = [
   {
     id: 'garage_001',
-    name: "Oscar Legacy Auto",
+    name: "Europic Garage",
     twilioNumber: '+12497010798',
-    ownerPhone: '+971568967912',
+    ownerPhone: '+971524915668',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: `Full car repair and maintenance including:
 - Engine diagnostics and repair
