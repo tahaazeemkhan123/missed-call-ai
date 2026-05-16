@@ -4,7 +4,7 @@ const garages = [
   {
     id: 'garage_001',
     name: "Dyno Star Auto Repairing",
-    twilioNumber: '+15559565809',
+    twilioNumber: '+12497010798',
     ownerPhone: '+971568967912',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: `Full car repair and maintenance including:
