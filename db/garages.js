@@ -5,7 +5,7 @@ const garages = [
     id: 'garage_001',
     name: "Europic Garage",
     twilioNumber: '+971527539149',
-    ownerPhone: '+971524915668',
+    ownerPhone: '+14155238886',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: `Full car repair and maintenance including:
 - Engine diagnostics and repair
