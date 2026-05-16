@@ -1,16 +1,29 @@
 const { getGarageByNumber } = require('../db/garages');
 const { addMessage } = require('../db/conversations');
 const { VoiceResponse } = require('twilio').twiml;
-const twilio = require('twilio');
+const axios = require('axios');
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const WHATSAPP_SANDBOX = 'whatsapp:+14155238886';
+const META_API_URL = `https://graph.facebook.com/v25.0/${process.env.META_PHONE_NUMBER_ID}/messages`;
+
+async function sendWhatsApp(to, message) {
+  await axios.post(META_API_URL, {
+    messaging_product: 'whatsapp',
+    to: to,
+    type: 'text',
+    text: { body: message }
+  }, {
+    headers: {
+      'Authorization': `Bearer ${process.env.META_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  });
+}
 
 async function handleMissedCall(req, res) {
   res.type('text/xml').send(new VoiceResponse().toString());
 
   try {
-    const callerPhone  = req.body.From;
+    const callerPhone = req.body.From;
     const twilioNumber = req.body.To;
 
     console.log(`📞 Missed call from ${callerPhone}`);
@@ -20,21 +33,17 @@ async function handleMissedCall(req, res) {
       console.error(`❌ No garage found for ${twilioNumber}`);
       return;
     }
+
     console.log('✅ Garage found:', garage.name);
 
-    const firstMessage = `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need? Reply here and we'll sort you out right away.`;
+    const firstMessage = `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need? Reply here and we'll get back to you shortly.`;
 
-    await client.messages.create({
-      from: WHATSAPP_SANDBOX,
-      to: `whatsapp:${callerPhone}`,
-      body: firstMessage,
-    });
+    await sendWhatsApp(callerPhone, firstMessage);
+    await addMessage(callerPhone, garage.id, 'assistant', firstMessage);
 
-    console.log('✅ WhatsApp sent to', callerPhone);
-    await addMessage(callerPhone, 'assistant', firstMessage);
-
+    console.log(`✅ WhatsApp sent to ${callerPhone}`);
   } catch (err) {
-    console.error('❌ ERROR:', err.message);
+    console.error('❌ Error:', err.response?.data || err.message);
   }
 }
 
