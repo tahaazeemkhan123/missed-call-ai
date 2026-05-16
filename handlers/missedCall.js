@@ -1,23 +1,10 @@
 const { getGarageByNumber } = require('../db/garages');
 const { addMessage } = require('../db/conversations');
 const { VoiceResponse } = require('twilio').twiml;
-const axios = require('axios');
+const twilio = require('twilio');
 
-const META_API_URL = `https://graph.facebook.com/v25.0/${process.env.META_PHONE_NUMBER_ID}/messages`;
-
-async function sendWhatsApp(to, message) {
-  await axios.post(META_API_URL, {
-    messaging_product: 'whatsapp',
-    to: to,
-    type: 'text',
-    text: { body: message }
-  }, {
-    headers: {
-      'Authorization': `Bearer ${process.env.META_ACCESS_TOKEN}`,
-      'Content-Type': 'application/json'
-    }
-  });
-}
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const WHATSAPP_SANDBOX = 'whatsapp:+14155238886';
 
 async function handleMissedCall(req, res) {
   res.type('text/xml').send(new VoiceResponse().toString());
@@ -38,13 +25,11 @@ async function handleMissedCall(req, res) {
 
     const firstMessage = `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need? Reply here and we'll get back to you shortly.`;
 
-    await sendWhatsApp(callerPhone, firstMessage);
+    await client.messages.create({
+      from: WHATSAPP_SANDBOX,
+      to: `whatsapp:${callerPhone}`,
+      body: firstMessage,
+    });
+
     await addMessage(callerPhone, garage.id, 'assistant', firstMessage);
-
-    console.log(`✅ WhatsApp sent to ${callerPhone}`);
-  } catch (err) {
-    console.error('❌ Error:', err.response?.data || err.message);
-  }
-}
-
-module.exports = { handleMissedCall };
+    console.log(`✅ WhatsApp sent to ${callerP
