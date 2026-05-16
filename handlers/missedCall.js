@@ -32,4 +32,10 @@ async function handleMissedCall(req, res) {
     });
 
     await addMessage(callerPhone, garage.id, 'assistant', firstMessage);
-    console.log(`✅ WhatsApp sent to ${callerP
+    console.log(`✅ WhatsApp sent to ${callerPhone}`);
+  } catch (err) {
+    console.error('❌ Error:', err.message);
+  }
+}
+
+module.exports = { handleMissedCall };
