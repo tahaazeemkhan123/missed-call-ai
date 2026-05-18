@@ -4,7 +4,6 @@ const { VoiceResponse } = require('twilio').twiml;
 const twilio = require('twilio');
 
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const WHATSAPP_SANDBOX = 'whatsapp:+15559565809';
 
 async function handleMissedCall(req, res) {
   res.type('text/xml').send(new VoiceResponse().toString());
@@ -24,16 +23,10 @@ async function handleMissedCall(req, res) {
     console.log('✅ Garage found:', garage.name);
 
     await client.messages.create({
-  from: 'whatsapp:+15559565809',
-  to: `whatsapp:${callerPhone}`,
-  contentSid: 'HXf0a7e2393f3a0e6a21ace0d2de911736',
-  contentVariables: JSON.stringify({ "1": garage.name })
-});
+      from: 'whatsapp:+15559565809',
+      to: `whatsapp:${callerPhone}`,
+      contentSid: 'HXf0a7e2393f3a0e6a21ace0d2de911736',
+      contentVariables: JSON.stringify({ "1": garage.name })
+    });
 
-await addMessage(callerPhone, garage.id, 'assistant', `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need?`);    console.log(`✅ WhatsApp sent to ${callerPhone}`);
-  } catch (err) {
-    console.error('❌ Error:', err.message);
-  }
-}
-
-module.exports = { handleMissedCall };
+    await addMessage(callerPhone, 'assistant', `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need?`
