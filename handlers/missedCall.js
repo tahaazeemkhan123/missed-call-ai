@@ -23,13 +23,12 @@ async function handleMissedCall(req, res) {
 
     console.log('✅ Garage found:', garage.name);
 
-    const firstMessage = `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need? Reply here and we'll get back to you shortly.`;
-
     await client.messages.create({
-      from: WHATSAPP_SANDBOX,
-      to: `whatsapp:${callerPhone}`,
-      body: firstMessage,
-    });
+  from: 'whatsapp:+15559565809',
+  to: `whatsapp:${callerPhone}`,
+  contentSid: 'HXf0a7e2393f3a0e6a21ace0d2de911736',
+  contentVariables: JSON.stringify({ "1": garage.name })
+});
 
     await addMessage(callerPhone, garage.id, 'assistant', firstMessage);
     console.log(`✅ WhatsApp sent to ${callerPhone}`);
