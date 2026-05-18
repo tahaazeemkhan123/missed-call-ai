@@ -30,7 +30,24 @@ async function handleWhatsAppReply(req, res) {
   try {
     const customerPhone = req.body.From.replace('whatsapp:', '');
     const customerMessage = req.body.Body;
-    console.log('WhatsApp from ' + customerPhone + ': ' + customerMessage);
     const garage = await getGarageByNumber('+12497010798');
     if (!garage) {
-      console.error('No garage f
+      console.error('No garage found');
+      return;
+    }
+    const history = await getHistory(customerPhone);
+    await addMessage(customerPhone, 'user', customerMessage);
+    const aiReply = await askClaude(garage, history, customerMessage);
+    await client.messages.create({
+      from: WHATSAPP_SANDBOX,
+      to: 'whatsapp:' + customerPhone,
+      body: aiReply,
+    });
+    await addMessage(customerPhone, 'assistant', aiReply);
+    await notifyOwner(garage, customerPhone, customerMessage, aiReply);
+  } catch (err) {
+    console.error('ERROR: ' + err.message);
+  }
+}
+
+module.exports = { handleWhatsAppReply };
