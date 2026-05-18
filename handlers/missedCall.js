@@ -29,4 +29,4 @@ async function handleMissedCall(req, res) {
       contentVariables: JSON.stringify({ "1": garage.name })
     });
 
-    await addMessage(callerPhone, 'assistant', `Hi! This is ${garage.name} 👋 Sorry we missed your call. What does your car need?`
+    await addMessage(callerPhone, 'assistant', `Hi! This is ${garage.name} Sorry we missed your call. What does your car need?`
