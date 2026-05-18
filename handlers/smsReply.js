@@ -10,7 +10,7 @@ const WHATSAPP_SANDBOX = 'whatsapp:+15559565809';
 async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
   try {
     await client.messages.create({
-      from: 'whatsapp:+15559565809',
+      from: WHATSAPP_SANDBOX,
       to: 'whatsapp:' + garage.ownerPhone,
       contentSid: 'HXe1d21e761534f8bb7b3f6a82878e93c2',
       contentVariables: JSON.stringify({
@@ -25,52 +25,12 @@ async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
   }
 }
 
-  try {
-    await client.messages.create({
-      from: WHATSAPP_SANDBOX,
-      to: `whatsapp:${garage.ownerPhone}`,
-      body: notification,
-    });
-  } catch (err) {
-    console.error('⚠️ Owner notify failed:', err.message);
-  }
-}
-
 async function handleWhatsAppReply(req, res) {
   res.type('text/xml').send(new MessagingResponse().toString());
-
   try {
-    const customerPhone   = req.body.From.replace('whatsapp:', '');
+    const customerPhone = req.body.From.replace('whatsapp:', '');
     const customerMessage = req.body.Body;
-
-    console.log(`💬 WhatsApp from ${customerPhone}: "${customerMessage}"`);
-
+    console.log('WhatsApp from ' + customerPhone + ': ' + customerMessage);
     const garage = await getGarageByNumber('+12497010798');
     if (!garage) {
-      console.error('❌ No garage found');
-      return;
-    }
-
-    const history = await getHistory(customerPhone);
-    await addMessage(customerPhone, 'user', customerMessage);
-
-    const aiReply = await askClaude(garage, history, customerMessage);
-    console.log('🤖 AI reply:', aiReply);
-
-    await client.messages.create({
-      from: WHATSAPP_SANDBOX,
-      to: `whatsapp:${customerPhone}`,
-      body: aiReply,
-    });
-
-    await addMessage(customerPhone, 'assistant', aiReply);
-    await notifyOwner(garage, customerPhone, customerMessage, aiReply);
-
-    console.log('✅ Replied to', customerPhone);
-
-  } catch (err) {
-    console.error('❌ ERROR:', err.message);
-  }
-}
-
-module.exports = { handleWhatsAppReply };
+      console.error('No garage f
