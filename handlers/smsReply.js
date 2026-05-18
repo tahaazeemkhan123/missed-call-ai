@@ -8,13 +8,22 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 const WHATSAPP_SANDBOX = 'whatsapp:+15559565809';
 
 async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
-  const notification =
-`🔔 MISSED CALL RECOVERED - ${garage.name}
-Customer: ${customerPhone}
-They said: "${customerMessage}"
-AI replied: "${aiReply}"
-─────────────────
-Call them back if needed.`;
+  try {
+    await client.messages.create({
+      from: 'whatsapp:+15559565809',
+      to: 'whatsapp:' + garage.ownerPhone,
+      contentSid: 'HXe1d21e761534f8bb7b3f6a82878e93c2',
+      contentVariables: JSON.stringify({
+        "1": garage.name,
+        "2": customerPhone,
+        "3": customerMessage,
+        "4": aiReply
+      })
+    });
+  } catch (err) {
+    console.error('Owner notify failed: ' + err.message);
+  }
+}
 
   try {
     await client.messages.create({
