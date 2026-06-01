@@ -5,12 +5,11 @@ const { MessagingResponse } = require('twilio').twiml;
 const twilio = require('twilio');
 
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const 'whatsapp:' + garage.whatsappNumber;
 
 async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
   try {
     await client.messages.create({
-      from: WHATSAPP_SANDBOX,
+      from: 'whatsapp:' + garage.whatsappNumber,
       to: 'whatsapp:' + garage.ownerPhone,
       contentSid: 'HXe1d21e761534f8bb7b3f6a82878e93c2',
       contentVariables: JSON.stringify({
@@ -31,9 +30,7 @@ async function handleWhatsAppReply(req, res) {
     const customerPhone = req.body.From.replace('whatsapp:', '');
     const customerMessage = req.body.Body;
     const incomingNumber = req.body.To.replace('whatsapp:', '');
-const garage = await getGarageByNumber(incomingNumber);
-    console.log('Incoming To field raw:', req.body.To);
-console.log('Incoming Number parsed:', incomingNumber);
+    const garage = await getGarageByNumber(incomingNumber);
     if (!garage) {
       console.error('No garage found');
       return;
@@ -42,7 +39,7 @@ console.log('Incoming Number parsed:', incomingNumber);
     await addMessage(customerPhone, 'user', customerMessage);
     const aiReply = await askClaude(garage, history, customerMessage);
     await client.messages.create({
-      from: WHATSAPP_SANDBOX,
+      from: 'whatsapp:' + garage.whatsappNumber,
       to: 'whatsapp:' + customerPhone,
       body: aiReply,
     });
