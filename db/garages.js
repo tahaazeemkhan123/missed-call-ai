@@ -5,6 +5,7 @@ const garages = [
     id: 'garage_001',
     name: "Dyno Star Auto Repairing",
     twilioNumber: '+12497010798',
+    whatsappNumber: '+15559565809',
     ownerPhone: '+971521237912',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: `Full car repair and maintenance including:
@@ -32,7 +33,8 @@ const garages = [
   id: 'garage_002',
   name: 'Road Force Tyre',
   twilioNumber: '+12495034471',
-  ownerPhone: ['+971562544545'],
+  whatsappNumber: '+15559848673',
+  ownerPhone: ['+971568967912'],
   hours: 'Every day, 10am to 10pm',
   services: `Tyre replacement and balancing, wheel alignment, brake pads and braking system repair, major car service, engine diagnostics, suspension and steering, paint and body work, general car repair and maintenance`,
   city: 'Al Quoz, Dubai',
@@ -52,8 +54,9 @@ const garages = [
   // },
 ];
 
-function getGarageByNumber(twilioNumber) {
-  return garages.find(g => g.twilioNumber === twilioNumber) || null;
+function getGarageByNumber(number) {
+  return garages.find(g => g.twilioNumber === number || g.whatsappNumber === number);
+}
 }
 
 module.exports = { garages, getGarageByNumber };
