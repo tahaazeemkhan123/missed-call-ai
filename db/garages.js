@@ -28,7 +28,16 @@ const garages = [
     city: 'Dubai',
     language: 'English',
   },
-
+{
+  id: 'garage_002',
+  name: 'Road Force Tyre',
+  twilioNumber: '+12495034471',
+  ownerPhone: ['+971562544545'],
+  hours: 'Every day, 10am to 10pm',
+  services: `Tyre replacement and balancing, wheel alignment, brake pads and braking system repair, major car service, engine diagnostics, suspension and steering, paint and body work, general car repair and maintenance`,
+  city: 'Al Quoz, Dubai',
+  language: 'English'
+},
   // Add more garages below as you sign clients:
   // {
   //   id: 'garage_002',
