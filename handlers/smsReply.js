@@ -8,17 +8,22 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 
 async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
   try {
-    await client.messages.create({
-      from: 'whatsapp:' + garage.whatsappNumber,
-      to: 'whatsapp:' + garage.ownerPhone,
-      contentSid: 'HXe1d21e761534f8bb7b3f6a82878e93c2',
-      contentVariables: JSON.stringify({
-        "1": garage.name,
-        "2": customerPhone,
-        "3": customerMessage,
-        "4": aiReply
-      })
-    });
+    const ownerPhones = Array.isArray(garage.ownerPhone) ? garage.ownerPhone : [garage.ownerPhone];
+    const cleanMessage = customerMessage.replace(/"/g, "'").replace(/\n/g, ' ').trim();
+    const cleanReply = aiReply.replace(/"/g, "'").replace(/\n/g, ' ').trim();
+    for (const phone of ownerPhones) {
+      await client.messages.create({
+        from: 'whatsapp:' + garage.whatsappNumber,
+        to: 'whatsapp:' + phone,
+        contentSid: 'HXe1d21e761534f8bb7b3f6a82878e93c2',
+        contentVariables: JSON.stringify({
+          "1": garage.name,
+          "2": customerPhone,
+          "3": cleanMessage,
+          "4": cleanReply
+        })
+      });
+    }
   } catch (err) {
     console.error('Owner notify failed: ' + err.message);
   }
