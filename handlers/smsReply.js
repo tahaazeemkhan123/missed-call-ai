@@ -5,7 +5,7 @@ const { MessagingResponse } = require('twilio').twiml;
 const twilio = require('twilio');
 
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const WHATSAPP_SANDBOX = 'whatsapp:+15559565809';
+const 'whatsapp:' + garage.whatsappNumber;
 
 async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
   try {
