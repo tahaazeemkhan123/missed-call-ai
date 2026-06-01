@@ -30,7 +30,8 @@ async function handleWhatsAppReply(req, res) {
   try {
     const customerPhone = req.body.From.replace('whatsapp:', '');
     const customerMessage = req.body.Body;
-    const garage = await getGarageByNumber('+12497010798');
+    const incomingNumber = req.body.To.replace('whatsapp:', '');
+const garage = await getGarageByNumber(incomingNumber);
     if (!garage) {
       console.error('No garage found');
       return;
