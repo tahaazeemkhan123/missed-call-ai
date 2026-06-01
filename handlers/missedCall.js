@@ -21,7 +21,7 @@ async function handleMissedCall(req, res) {
   from: 'whatsapp:' + garage.whatsappNumber,
   to: 'whatsapp:' + callerPhone,
   contentSid: 'HXf0a7e2393f3a0e6a21ace0d2de911736',
-  contentVariables: JSON.stringify({ "1": garage.name })
+  contentVariables: '{"1":"' + garage.name + '"}'
 });
     await addMessage(callerPhone, 'assistant', 'Hi! This is ' + garage.name + '. Sorry we missed your call. What does your car need?');
     console.log('WhatsApp sent to ' + callerPhone);
