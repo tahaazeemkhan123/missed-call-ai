@@ -57,6 +57,4 @@ const garages = [
 function getGarageByNumber(number) {
   return garages.find(g => g.twilioNumber === number || g.whatsappNumber === number);
 }
-}
-
 module.exports = { garages, getGarageByNumber };
