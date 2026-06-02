@@ -32,7 +32,7 @@ const garages = [
 {
   id: 'garage_002',
   name: 'Road Force Tyre',
-  twilioNumber: '+12495034471',
+  twilioNumber: '+17822972044',
   whatsappNumber: '+15559658416',
   ownerPhone: ['+971568967912'],
   hours: 'Every day, 10am to 10pm',
