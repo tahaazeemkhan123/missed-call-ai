@@ -17,7 +17,7 @@ const garages = [
     id: 'garage_002',
     name: 'Road Force Tyre',
     twilioNumber: '+17822972044',
-    whatsappNumber: '+15559658416',
+    whatsappNumber: '+15559903344',
     twilioAccount: 'roadforce',
     templateSid: 'HX050d61393923ab93458a18d8dfddcd41',
     ownerPhone: ['+971568967912'],
