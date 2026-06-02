@@ -26,7 +26,7 @@ async function handleMissedCall(req, res) {
     await client.messages.create({
       from: 'whatsapp:' + garage.whatsappNumber,
       to: 'whatsapp:' + callerPhone,
-      contentSid: garage.templateSid',
+      contentSid: garage.templateSid,
       contentVariables: '{"1":"' + garage.name + '"}'
     });
     await addMessage(callerPhone, 'assistant', 'Hi! This is ' + garage.name + '. Sorry we missed your call. What does your car need?');
