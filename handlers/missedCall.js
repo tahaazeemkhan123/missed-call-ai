@@ -23,6 +23,7 @@ async function handleMissedCall(req, res) {
     }
     console.log('Garage found: ' + garage.name);
     const client = getClient(garage);
+    console.log('Using account:', garage.twilioAccount, process.env.TWILIO_ACCOUNT_SID_RF ? 'RF creds present' : 'RF creds MISSING');
     await client.messages.create({
       from: 'whatsapp:' + garage.whatsappNumber,
       to: 'whatsapp:' + callerPhone,
