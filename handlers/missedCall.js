@@ -25,12 +25,14 @@ async function handleMissedCall(req, res) {
     const client = getClient(garage);
     console.log('Using account:', garage.twilioAccount, process.env.TWILIO_ACCOUNT_SID_RF ? 'RF creds present' : 'RF creds MISSING');
     console.log('RF SID starts with:', process.env.TWILIO_ACCOUNT_SID_RF ? process.env.TWILIO_ACCOUNT_SID_RF.substring(0,8) : 'NOT SET');
-    await client.messages.create({
+    const messagePayload = {
       from: 'whatsapp:' + garage.whatsappNumber,
       to: 'whatsapp:' + callerPhone,
       contentSid: garage.templateSid,
       contentVariables: '{"1":"' + garage.name + '"}'
-    });
+    };
+    console.log('Sending message:', JSON.stringify(messagePayload, null, 2));
+    await client.messages.create(messagePayload);
     await addMessage(callerPhone, 'assistant', 'Hi! This is ' + garage.name + '. Sorry we missed your call. What does your car need?');
     console.log('WhatsApp sent to ' + callerPhone);
   } catch (err) {
