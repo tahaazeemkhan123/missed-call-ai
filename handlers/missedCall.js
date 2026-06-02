@@ -3,7 +3,12 @@ const { addMessage } = require('../db/conversations');
 const { VoiceResponse } = require('twilio').twiml;
 const twilio = require('twilio');
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const twilioMain = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const twilioRF = twilio(process.env.TWILIO_ACCOUNT_SID_RF, process.env.TWILIO_AUTH_TOKEN_RF);
+
+function getClient(garage) {
+  return garage.twilioAccount === 'roadforce' ? twilioRF : twilioMain;
+}
 
 async function handleMissedCall(req, res) {
   res.type('text/xml').send(new VoiceResponse().toString());
@@ -17,12 +22,13 @@ async function handleMissedCall(req, res) {
       return;
     }
     console.log('Garage found: ' + garage.name);
+    const client = getClient(garage);
     await client.messages.create({
-  from: 'whatsapp:' + garage.whatsappNumber,
-  to: 'whatsapp:' + callerPhone,
-  contentSid: 'HX6fc22207c6285762634bbb994618ef76',
-  contentVariables: '{"1":"' + garage.name + '"}'
-});
+      from: 'whatsapp:' + garage.whatsappNumber,
+      to: 'whatsapp:' + callerPhone,
+      contentSid: 'HX6fc22207c6285762634bbb994618ef76',
+      contentVariables: '{"1":"' + garage.name + '"}'
+    });
     await addMessage(callerPhone, 'assistant', 'Hi! This is ' + garage.name + '. Sorry we missed your call. What does your car need?');
     console.log('WhatsApp sent to ' + callerPhone);
   } catch (err) {
