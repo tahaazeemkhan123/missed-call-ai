@@ -19,7 +19,7 @@ const garages = [
     twilioNumber: '+17822972044',
     whatsappNumber: '+15559903344',
     twilioAccount: 'roadforce',
-    templateSid: 'HX050d61393923ab93458a18d8dfddcd41',
+    templateSid: 'HX5062a39bb744844a660fa76000417d7e',
     ownerPhone: ['+971568967912'],
     hours: 'Every day, 10am to 10pm',
     services: 'Tyre replacement and balancing, wheel alignment, brake pads and braking system repair, major car service, engine diagnostics, suspension and steering, paint and body work, general car repair and maintenance.',
