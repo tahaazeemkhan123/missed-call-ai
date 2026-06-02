@@ -4,10 +4,16 @@ const { askClaude } = require('../config/claude');
 const { MessagingResponse } = require('twilio').twiml;
 const twilio = require('twilio');
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const twilioMain = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const twilioRF = twilio(process.env.TWILIO_ACCOUNT_SID_RF, process.env.TWILIO_AUTH_TOKEN_RF);
+
+function getClient(garage) {
+  return garage.twilioAccount === 'roadforce' ? twilioRF : twilioMain;
+}
 
 async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
   try {
+    const client = getClient(garage);
     const ownerPhones = Array.isArray(garage.ownerPhone) ? garage.ownerPhone : [garage.ownerPhone];
     const cleanMessage = customerMessage.replace(/"/g, "'").replace(/\n/g, ' ').trim();
     const cleanReply = aiReply.replace(/"/g, "'").replace(/\n/g, ' ').trim();
@@ -40,6 +46,7 @@ async function handleWhatsAppReply(req, res) {
       console.error('No garage found');
       return;
     }
+    const client = getClient(garage);
     const history = await getHistory(customerPhone);
     await addMessage(customerPhone, 'user', customerMessage);
     const aiReply = await askClaude(garage, history, customerMessage);
