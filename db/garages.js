@@ -33,7 +33,7 @@ const garages = [
   id: 'garage_002',
   name: 'Road Force Tyre',
   twilioNumber: '+12495034471',
-  whatsappNumber: '+15559940420',
+  whatsappNumber: '+15559658416',
   ownerPhone: ['+971568967912'],
   hours: 'Every day, 10am to 10pm',
   services: `Tyre replacement and balancing, wheel alignment, brake pads and braking system repair, major car service, engine diagnostics, suspension and steering, paint and body work, general car repair and maintenance`,
