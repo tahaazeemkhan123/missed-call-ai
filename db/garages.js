@@ -6,7 +6,7 @@ const garages = [
     whatsappNumber: '+15559565809',
     twilioAccount: 'main',
     templateSid: 'HX6fc22207c6285762634bbb994618ef76',
-    ownerPhone: '+971521237912',
+    ownerPhone: '+971568967912',
     hours: 'Monday to Saturday, 8am to 7pm. Closed on Sundays.',
     services: 'Full car repair and maintenance including engine diagnostics and repair, gearbox and transmission repair, suspension and steering, brake service and repair, oil and filter changes, AC service and repair, electrical diagnostics and repair, battery testing and replacement, windscreen and glass repair/replacement, body work, dent removal and panel beating, car painting, car wrapping, PPF, ceramic coating and paint detailing, full car servicing, all car brands and models welcome.',
     bookingLink: 'https://wa.me/971568967912',
