@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 
 let _client = null;
 
@@ -9,11 +10,12 @@ function getSupabase() {
   if (!url || !key) {
     throw new Error('SUPABASE_URL and SUPABASE_KEY env vars must be set');
   }
-  _client = createClient(url, key);
+  _client = createClient(url, key, {
+    realtime: { transport: ws },
+  });
   return _client;
 }
 
-// Proxy so existing code can keep calling supabase.from(...) etc.
 module.exports = new Proxy({}, {
   get(_target, prop) {
     return getSupabase()[prop];
