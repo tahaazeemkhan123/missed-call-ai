@@ -1,37 +1,79 @@
 const { getGarageByNumber } = require('../db/garages');
-const { getHistory, addMessage } = require('../db/conversations');
+const {
+  getHistory,
+  addMessage,
+  getActiveConversationId,
+  markEnded,
+  saveSummary,
+  getAllMessages,
+} = require('../db/conversations');
 const { askClaude } = require('../config/claude');
 const { MessagingResponse } = require('twilio').twiml;
 const twilio = require('twilio');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const twilioMain = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const twilioRF = twilio(process.env.TWILIO_ACCOUNT_SID_RF, process.env.TWILIO_AUTH_TOKEN_RF);
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || 'localhost:3000';
+const CONVERSATION_END_PHRASE = 'give you a call shortly to confirm';
 
 function getClient(garage) {
   return garage.twilioAccount === 'roadforce' ? twilioRF : twilioMain;
 }
 
-async function notifyOwner(garage, customerPhone, customerMessage, aiReply) {
+async function extractSummary(messages) {
+  const transcript = messages
+    .map(m => `${m.role === 'ai' ? 'AI' : 'Customer'}: ${m.content}`)
+    .join('\n');
+
+  const response = await anthropic.messages.create({
+    model: 'claude-opus-4-5',
+    max_tokens: 400,
+    system: `You are a data extraction assistant. Given a conversation between an AI agent and a car repair customer, extract the following fields and return ONLY a valid JSON object with no explanation, no markdown, no backticks:
+{
+  "name": "customer's name or null if not provided",
+  "car": "make, model and year as a single string, or null if not provided",
+  "issue": "what the customer described as the problem, in their words",
+  "availability": "when the customer said they can come in, or null if not provided"
+}`,
+    messages: [{ role: 'user', content: transcript }],
+  });
+
+  return JSON.parse(response.content[0].text);
+}
+
+async function notifyOwnerSummary(garage, customerPhone, summary, conversationId) {
   try {
     const client = getClient(garage);
     const ownerPhones = Array.isArray(garage.ownerPhone) ? garage.ownerPhone : [garage.ownerPhone];
-    const cleanMessage = customerMessage.replace(/"/g, "'").replace(/\n/g, ' ').trim();
-    const cleanReply = aiReply.replace(/"/g, "'").replace(/\n/g, ' ').trim();
+
+    const name = summary.name || 'Unknown';
+    const car = summary.car || 'Unknown';
+    const issue = summary.issue || 'Unknown';
+    const availability = summary.availability || 'Unknown';
+    const link = `https://${RAILWAY_DOMAIN}/conversation/${conversationId}`;
+
+    const body =
+      `🔔 New Lead Recovered - ${garage.name}\n\n` +
+      `👤 Name: ${name}\n` +
+      `📞 Number: ${customerPhone}\n` +
+      `🚗 Car: ${car}\n` +
+      `🔧 Issue: ${issue}\n` +
+      `📅 Availability: ${availability}\n\n` +
+      `🔗 Full conversation: ${link}\n\n` +
+      `Call them back to confirm the time.`;
+
     for (const phone of ownerPhones) {
       await client.messages.create({
         from: 'whatsapp:' + garage.whatsappNumber,
         to: 'whatsapp:' + phone,
-        contentSid: 'HXe1d21e761534f8bb7b3f6a82878e93c2',
-        contentVariables: JSON.stringify({
-          "1": garage.name,
-          "2": customerPhone,
-          "3": cleanMessage,
-          "4": cleanReply
-        })
+        body,
       });
     }
   } catch (err) {
-    console.error('Owner notify failed: ' + err.message);
+    console.error('Owner summary notify failed: ' + err.message);
   }
 }
 
@@ -47,16 +89,31 @@ async function handleWhatsAppReply(req, res) {
       return;
     }
     const client = getClient(garage);
-    const history = await getHistory(customerPhone);
-    await addMessage(customerPhone, 'user', customerMessage);
+
+    const history = await getHistory(customerPhone, garage.id);
+    await addMessage(customerPhone, 'user', customerMessage, garage.id);
+
     const aiReply = await askClaude(garage, history, customerMessage);
+
     await client.messages.create({
       from: 'whatsapp:' + garage.whatsappNumber,
       to: 'whatsapp:' + customerPhone,
       body: aiReply,
     });
-    await addMessage(customerPhone, 'assistant', aiReply);
-    await notifyOwner(garage, customerPhone, customerMessage, aiReply);
+
+    await addMessage(customerPhone, 'assistant', aiReply, garage.id);
+
+    if (aiReply.toLowerCase().includes(CONVERSATION_END_PHRASE)) {
+      console.log(`[END DETECTED] Conversation ending for ${customerPhone} at ${garage.name}`);
+      const convId = await getActiveConversationId(customerPhone, garage.id);
+      await markEnded(convId);
+
+      const messages = await getAllMessages(convId);
+      const summary = await extractSummary(messages);
+      await saveSummary(convId, summary);
+
+      await notifyOwnerSummary(garage, customerPhone, summary, convId);
+    }
   } catch (err) {
     console.error('ERROR: ' + err.message);
   }
