@@ -18,23 +18,11 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || 'localhost:3000';
 
-// Any of these phrases in the AI reply = conversation complete
-const END_PHRASES = [
-  'give you a call shortly to confirm',
-  'call you shortly to confirm',
-  'call you back to confirm',
-  'give you a call to confirm',
-  'team will call you',
-  'team will give you a call',
-  'someone will call you',
-  'we will call you',
-  "we'll call you",
-  'will be in touch',
-];
+// Matches the exact closing sentence Claude is instructed to use
+const END_PHRASE = 'the team will give you a call shortly to confirm';
 
 function isConversationComplete(aiReply) {
-  const lower = aiReply.toLowerCase();
-  return END_PHRASES.some(phrase => lower.includes(phrase));
+  return aiReply.toLowerCase().includes(END_PHRASE);
 }
 
 function getClient(garage) {
