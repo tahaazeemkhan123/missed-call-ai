@@ -33,7 +33,7 @@ async function handleMissedCall(req, res) {
     };
     console.log('Sending message:', JSON.stringify(messagePayload, null, 2));
     await client.messages.create(messagePayload);
-    await addMessage(callerPhone, 'assistant', 'Hi! This is ' + garage.name + '. Sorry we missed your call. What does your car need?', garage.id);
+    await addMessage(callerPhone, 'assistant', 'Hi! This is ' + garage.name + '. Sorry we missed your call. What does your car need?');
     console.log('WhatsApp sent to ' + callerPhone);
   } catch (err) {
     console.error('Error: ' + err.message);

@@ -1,12 +1,5 @@
 const { getGarageByNumber } = require('../db/garages');
-const {
-  getHistory,
-  addMessage,
-  getActiveConversationId,
-  markEnded,
-  saveSummary,
-  getAllMessages,
-} = require('../db/conversations');
+const { getHistory, addMessage } = require('../db/conversations');
 const { askClaude } = require('../config/claude');
 const { MessagingResponse } = require('twilio').twiml;
 const twilio = require('twilio');
@@ -17,8 +10,6 @@ const twilioRF = twilio(process.env.TWILIO_ACCOUNT_SID_RF, process.env.TWILIO_AU
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || 'localhost:3000';
-
-// Matches the exact closing sentence Claude is instructed to use
 const END_PHRASE = 'the team will give you a call shortly to confirm';
 
 function isConversationComplete(aiReply) {
@@ -29,9 +20,9 @@ function getClient(garage) {
   return garage.twilioAccount === 'roadforce' ? twilioRF : twilioMain;
 }
 
-async function extractSummary(messages) {
-  const transcript = messages
-    .map(m => `${m.role === 'ai' ? 'AI' : 'Customer'}: ${m.content}`)
+async function extractSummary(history) {
+  const transcript = history
+    .map(m => `${m.role === 'assistant' ? 'AI' : 'Customer'}: ${m.content}`)
     .join('\n');
 
   const response = await anthropic.messages.create({
@@ -50,7 +41,7 @@ async function extractSummary(messages) {
   return JSON.parse(response.content[0].text);
 }
 
-async function notifyOwnerSummary(garage, customerPhone, summary, conversationId) {
+async function notifyOwnerSummary(garage, customerPhone, summary) {
   const client = getClient(garage);
   const ownerPhones = Array.isArray(garage.ownerPhone) ? garage.ownerPhone : [garage.ownerPhone];
 
@@ -58,7 +49,6 @@ async function notifyOwnerSummary(garage, customerPhone, summary, conversationId
   const car = summary.car || 'Unknown';
   const issue = summary.issue || 'Unknown';
   const availability = summary.availability || 'Unknown';
-  const link = `https://${RAILWAY_DOMAIN}/conversation/${conversationId}`;
 
   const body =
     `🔔 New Lead Recovered - ${garage.name}\n\n` +
@@ -67,7 +57,6 @@ async function notifyOwnerSummary(garage, customerPhone, summary, conversationId
     `🚗 Car: ${car}\n` +
     `🔧 Issue: ${issue}\n` +
     `📅 Availability: ${availability}\n\n` +
-    `🔗 Full conversation: ${link}\n\n` +
     `Call them back to confirm the time.`;
 
   console.log(`[NOTIFY] Sending summary to owner(s): ${ownerPhones.join(', ')}`);
@@ -99,8 +88,8 @@ async function handleWhatsAppReply(req, res) {
     }
     const client = getClient(garage);
 
-    const history = await getHistory(customerPhone, garage.id);
-    await addMessage(customerPhone, 'user', customerMessage, garage.id);
+    const history = await getHistory(customerPhone);
+    await addMessage(customerPhone, 'user', customerMessage);
 
     const aiReply = await askClaude(garage, history, customerMessage);
     console.log(`[AI REPLY] ${aiReply}`);
@@ -111,20 +100,15 @@ async function handleWhatsAppReply(req, res) {
       body: aiReply,
     });
 
-    await addMessage(customerPhone, 'assistant', aiReply, garage.id);
+    await addMessage(customerPhone, 'assistant', aiReply);
 
     if (isConversationComplete(aiReply)) {
       console.log(`[END DETECTED] Conversation ending for ${customerPhone} at ${garage.name}`);
-      const convId = await getActiveConversationId(customerPhone, garage.id);
-      await markEnded(convId);
-
-      console.log(`[SUMMARY] Extracting summary for conversation ${convId}`);
-      const messages = await getAllMessages(convId);
-      const summary = await extractSummary(messages);
+      const fullHistory = await getHistory(customerPhone);
+      console.log(`[SUMMARY] Extracting summary from ${fullHistory.length} messages`);
+      const summary = await extractSummary(fullHistory);
       console.log(`[SUMMARY] Extracted: ${JSON.stringify(summary)}`);
-      await saveSummary(convId, summary);
-
-      await notifyOwnerSummary(garage, customerPhone, summary, convId);
+      await notifyOwnerSummary(garage, customerPhone, summary);
     } else {
       console.log(`[END CHECK] Not complete yet — no end phrase matched`);
     }
