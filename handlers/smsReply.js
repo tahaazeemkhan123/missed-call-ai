@@ -99,6 +99,7 @@ async function handleWhatsAppReply(req, res) {
     const client = getClient(garage);
 
     const history = await getHistory(customerPhone);
+    console.log('[HISTORY]', JSON.stringify(history));
     await addMessage(customerPhone, 'user', customerMessage);
 
     const aiReply = await askClaude(garage, history, customerMessage);
