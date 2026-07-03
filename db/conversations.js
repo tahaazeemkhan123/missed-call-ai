@@ -1,6 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
 const ws = require('ws');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+console.log('[SUPABASE INIT] URL:', SUPABASE_URL || 'MISSING');
+console.log('[SUPABASE INIT] KEY:', SUPABASE_KEY ? SUPABASE_KEY.substring(0, 20) + '...' : 'MISSING');
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   realtime: { transport: ws }
 });
 
