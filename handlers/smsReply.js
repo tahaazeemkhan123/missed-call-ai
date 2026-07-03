@@ -12,6 +12,8 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || 'localhost:3000';
 const END_PHRASE = 'the team will give you a call shortly to confirm';
 
+const processedSids = new Set();
+
 function isConversationComplete(aiReply) {
   return aiReply.toLowerCase().includes(END_PHRASE);
 }
@@ -76,6 +78,14 @@ async function notifyOwnerSummary(garage, customerPhone, summary) {
 }
 
 async function handleWhatsAppReply(req, res) {
+  const messageSid = req.body.MessageSid;
+  if (processedSids.has(messageSid)) {
+    console.log(`[DEDUP] Duplicate MessageSid ${messageSid} — ignoring`);
+    return res.type('text/xml').send(new MessagingResponse().toString());
+  }
+  if (processedSids.size >= 1000) processedSids.clear();
+  processedSids.add(messageSid);
+
   res.type('text/xml').send(new MessagingResponse().toString());
   try {
     const customerPhone = req.body.From.replace('whatsapp:', '');
