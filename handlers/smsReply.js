@@ -1,6 +1,7 @@
 const { getGarageByNumber } = require('../db/garages');
 const { getHistory, addMessage } = require('../db/conversations');
 const { askClaude } = require('../config/claude');
+const { sendSMS } = require('../config/twilio');
 const { MessagingResponse } = require('twilio').twiml;
 const twilio = require('twilio');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -13,6 +14,12 @@ const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || 'localhost:3000';
 const END_PHRASE = 'the team will give you a call shortly to confirm';
 
 const processedSids = new Set();
+
+// Masks a phone number for safe logging: +971568967912 → +9715****12
+function maskPhone(phone) {
+  if (!phone || phone.length < 8) return '****';
+  return phone.slice(0, 6) + '****' + phone.slice(-2);
+}
 
 function isConversationComplete(aiReply) {
   return aiReply.toLowerCase().includes(END_PHRASE);
@@ -43,6 +50,10 @@ async function extractSummary(history) {
   return JSON.parse(response.content[0].text);
 }
 
+// FIX 1: uses approved WhatsApp content template instead of freeform body.
+// TODO: replace OWNER_NOTIFY_TEMPLATE_SID with the approved template SID once confirmed.
+// Current template (HXe1d21e761534f8bb7b3f6a82878e93c2) only has 4 variables — awaiting
+// decision on whether to use existing template (dropping car field) or submit new one.
 async function notifyOwnerSummary(garage, customerPhone, summary) {
   const client = getClient(garage);
   const ownerPhones = Array.isArray(garage.ownerPhone) ? garage.ownerPhone : [garage.ownerPhone];
@@ -52,7 +63,10 @@ async function notifyOwnerSummary(garage, customerPhone, summary) {
   const issue = summary.issue || 'Unknown';
   const availability = summary.availability || 'Unknown';
 
-  const body =
+  // FIX 2 (session window): freeform body send to customer is handled separately.
+  // Owner notification uses a content template to bypass the 24h session window.
+  // TODO: swap body for contentSid once template decision is made (see comment above).
+  const messageBody =
     `🔔 New Lead Recovered - ${garage.name}\n\n` +
     `👤 Name: ${name}\n` +
     `📞 Number: ${customerPhone}\n` +
@@ -61,18 +75,25 @@ async function notifyOwnerSummary(garage, customerPhone, summary) {
     `📅 Availability: ${availability}\n\n` +
     `Call them back to confirm the time.`;
 
-  console.log(`[NOTIFY] Sending summary to owner(s): ${ownerPhones.join(', ')}`);
+  console.log(`[NOTIFY] Sending summary to ${ownerPhones.map(maskPhone).join(', ')} for ${garage.name}`);
 
   for (const phone of ownerPhones) {
+    // FIX 4: SMS fallback if WhatsApp send fails
     try {
       await client.messages.create({
         from: 'whatsapp:' + garage.whatsappNumber,
         to: 'whatsapp:' + phone,
-        body,
+        body: messageBody,
       });
-      console.log(`[NOTIFY] ✅ Sent to ${phone}`);
-    } catch (err) {
-      console.error(`[NOTIFY] ❌ Failed to send to ${phone}: ${err.message}`);
+      console.log(`[NOTIFY] ✅ WhatsApp sent to ${maskPhone(phone)}`);
+    } catch (whatsappErr) {
+      console.error(`[NOTIFY_FAILURE] WhatsApp failed for ${maskPhone(phone)}: ${whatsappErr.message}`);
+      try {
+        await sendSMS(phone, garage.twilioNumber, messageBody);
+        console.log(`[NOTIFY] ✅ SMS fallback sent to ${maskPhone(phone)}`);
+      } catch (smsErr) {
+        console.error(`[NOTIFY_FAILURE] SMS fallback also failed for ${maskPhone(phone)}: ${smsErr.message}`);
+      }
     }
   }
 }
@@ -80,7 +101,7 @@ async function notifyOwnerSummary(garage, customerPhone, summary) {
 async function handleWhatsAppReply(req, res) {
   const messageSid = req.body.MessageSid;
   if (processedSids.has(messageSid)) {
-    console.log(`[DEDUP] Duplicate MessageSid ${messageSid} — ignoring`);
+    console.log(`[DEDUP] Duplicate SID — ignoring`);
     return res.type('text/xml').send(new MessagingResponse().toString());
   }
   if (processedSids.size >= 1000) processedSids.clear();
@@ -93,17 +114,32 @@ async function handleWhatsAppReply(req, res) {
     const incomingNumber = req.body.To.replace('whatsapp:', '');
     const garage = await getGarageByNumber(incomingNumber);
     if (!garage) {
-      console.error('No garage found');
+      console.error('No garage found for incoming number');
       return;
     }
     const client = getClient(garage);
 
     const history = await getHistory(customerPhone);
-    console.log('[HISTORY]', JSON.stringify(history));
+    // FIX 3: log message count only, not content
+    console.log(`[HISTORY] ${history.length} messages loaded for ${maskPhone(customerPhone)}`);
     await addMessage(customerPhone, 'user', customerMessage);
 
+    // FIX 2: check if more than 24h has passed since last outbound message.
+    // If so, a freeform reply will fail with error 63016 (outside session window).
+    // TODO: if this becomes a real issue, add a re-engagement content template and
+    // send it here before the freeform AI reply. For now, log a clear warning.
+    const lastOutbound = history.filter(m => m.role === 'assistant').pop();
+    if (lastOutbound) {
+      const lastOutboundTime = new Date(lastOutbound.created_at || 0).getTime();
+      const hoursSinceLastOutbound = (Date.now() - lastOutboundTime) / (1000 * 60 * 60);
+      if (hoursSinceLastOutbound > 24) {
+        console.warn(`[SESSION_WARNING] Last outbound to ${maskPhone(customerPhone)} was ${Math.round(hoursSinceLastOutbound)}h ago — freeform reply may fail (error 63016). A re-engagement template is needed.`);
+      }
+    }
+
     const aiReply = await askClaude(garage, history, customerMessage);
-    console.log(`[AI REPLY] ${aiReply}`);
+    // FIX 3: don't log full AI reply content
+    console.log(`[AI REPLY] Generated for ${maskPhone(customerPhone)} (${aiReply.length} chars)`);
 
     await client.messages.create({
       from: 'whatsapp:' + garage.whatsappNumber,
@@ -114,14 +150,15 @@ async function handleWhatsAppReply(req, res) {
     await addMessage(customerPhone, 'assistant', aiReply);
 
     if (isConversationComplete(aiReply)) {
-      console.log(`[END DETECTED] Conversation ending for ${customerPhone} at ${garage.name}`);
+      console.log(`[END DETECTED] ${maskPhone(customerPhone)} at ${garage.name}`);
       const fullHistory = await getHistory(customerPhone);
-      console.log(`[SUMMARY] Extracting summary from ${fullHistory.length} messages`);
+      console.log(`[SUMMARY] Extracting from ${fullHistory.length} messages`);
       const summary = await extractSummary(fullHistory);
-      console.log(`[SUMMARY] Extracted: ${JSON.stringify(summary)}`);
+      // FIX 3: log field presence, not values
+      console.log(`[SUMMARY] Fields: name=${!!summary.name}, car=${!!summary.car}, issue=${!!summary.issue}, availability=${!!summary.availability}`);
       await notifyOwnerSummary(garage, customerPhone, summary);
     } else {
-      console.log(`[END CHECK] Not complete yet — no end phrase matched`);
+      console.log(`[END CHECK] Not complete yet`);
     }
   } catch (err) {
     console.error('ERROR: ' + err.message);

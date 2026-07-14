@@ -5,7 +5,8 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 
 async function sendSMS(to, from, message) {
   const result = await client.messages.create({ body: message, from, to });
-  console.log(`SMS sent to ${to} [${result.sid}]`);
+  const masked = to.slice(0, 6) + '****' + to.slice(-2);
+  console.log(`SMS sent to ${masked} [${result.sid}]`);
   return result;
 }
 

@@ -6,6 +6,11 @@ const twilio = require('twilio');
 const twilioMain = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const twilioRF = twilio(process.env.TWILIO_ACCOUNT_SID_RF, process.env.TWILIO_AUTH_TOKEN_RF);
 
+function maskPhone(phone) {
+  if (!phone || phone.length < 8) return '****';
+  return phone.slice(0, 6) + '****' + phone.slice(-2);
+}
+
 function getClient(garage) {
   return garage.twilioAccount === 'roadforce' ? twilioRF : twilioMain;
 }
@@ -15,26 +20,22 @@ async function handleMissedCall(req, res) {
   try {
     const callerPhone = req.body.From;
     const twilioNumber = req.body.To;
-    console.log('Missed call from ' + callerPhone);
+    console.log('Missed call from ' + maskPhone(callerPhone));
     const garage = await getGarageByNumber(twilioNumber);
     if (!garage) {
-      console.error('No garage found for ' + twilioNumber);
+      console.error('No garage found for incoming number');
       return;
     }
     console.log('Garage found: ' + garage.name);
     const client = getClient(garage);
-    console.log('Using account:', garage.twilioAccount, process.env.TWILIO_ACCOUNT_SID_RF ? 'RF creds present' : 'RF creds MISSING');
-    console.log('RF SID starts with:', process.env.TWILIO_ACCOUNT_SID_RF ? process.env.TWILIO_ACCOUNT_SID_RF.substring(0,8) : 'NOT SET');
-    const messagePayload = {
+    await client.messages.create({
       from: 'whatsapp:' + garage.whatsappNumber,
       to: 'whatsapp:' + callerPhone,
       contentSid: garage.templateSid,
       contentVariables: '{"1":"' + garage.name + '"}'
-    };
-    console.log('Sending message:', JSON.stringify(messagePayload, null, 2));
-    await client.messages.create(messagePayload);
+    });
     await addMessage(callerPhone, 'assistant', 'Hi! This is ' + garage.name + '. Sorry we missed your call. What does your car need?');
-    console.log('WhatsApp sent to ' + callerPhone);
+    console.log('WhatsApp sent to ' + maskPhone(callerPhone));
   } catch (err) {
     console.error('Error: ' + err.message);
   }
