@@ -50,10 +50,8 @@ async function extractSummary(history) {
   return JSON.parse(response.content[0].text);
 }
 
-// FIX 1: uses approved WhatsApp content template instead of freeform body.
-// TODO: replace OWNER_NOTIFY_TEMPLATE_SID with the approved template SID once confirmed.
-// Current template (HXe1d21e761534f8bb7b3f6a82878e93c2) only has 4 variables — awaiting
-// decision on whether to use existing template (dropping car field) or submit new one.
+const OWNER_LEAD_SUMMARY_SID = 'HX07a69b90ad2f2e1922b4f0f03298a408';
+
 async function notifyOwnerSummary(garage, customerPhone, summary) {
   const client = getClient(garage);
   const ownerPhones = Array.isArray(garage.ownerPhone) ? garage.ownerPhone : [garage.ownerPhone];
@@ -63,33 +61,34 @@ async function notifyOwnerSummary(garage, customerPhone, summary) {
   const issue = summary.issue || 'Unknown';
   const availability = summary.availability || 'Unknown';
 
-  // FIX 2 (session window): freeform body send to customer is handled separately.
-  // Owner notification uses a content template to bypass the 24h session window.
-  // TODO: swap body for contentSid once template decision is made (see comment above).
-  const messageBody =
-    `🔔 New Lead Recovered - ${garage.name}\n\n` +
-    `👤 Name: ${name}\n` +
-    `📞 Number: ${customerPhone}\n` +
-    `🚗 Car: ${car}\n` +
-    `🔧 Issue: ${issue}\n` +
-    `📅 Availability: ${availability}\n\n` +
-    `Call them back to confirm the time.`;
+  // Fallback body used only if SMS path is needed
+  const smsBody =
+    `🔔 New Lead - ${garage.name}\n👤 ${name}\n📞 ${customerPhone}\n🚗 ${car}\n🔧 ${issue}\n📅 ${availability}`;
 
   console.log(`[NOTIFY] Sending summary to ${ownerPhones.map(maskPhone).join(', ')} for ${garage.name}`);
 
   for (const phone of ownerPhones) {
-    // FIX 4: SMS fallback if WhatsApp send fails
     try {
+      // FIX 1: use approved content template — bypasses 24h session window
       await client.messages.create({
         from: 'whatsapp:' + garage.whatsappNumber,
         to: 'whatsapp:' + phone,
-        body: messageBody,
+        contentSid: OWNER_LEAD_SUMMARY_SID,
+        contentVariables: JSON.stringify({
+          '1': garage.name,
+          '2': customerPhone,
+          '3': name,
+          '4': car,
+          '5': issue,
+          '6': availability,
+        }),
       });
       console.log(`[NOTIFY] ✅ WhatsApp sent to ${maskPhone(phone)}`);
     } catch (whatsappErr) {
       console.error(`[NOTIFY_FAILURE] WhatsApp failed for ${maskPhone(phone)}: ${whatsappErr.message}`);
+      // FIX 4: SMS fallback
       try {
-        await sendSMS(phone, garage.twilioNumber, messageBody);
+        await sendSMS(phone, garage.twilioNumber, smsBody);
         console.log(`[NOTIFY] ✅ SMS fallback sent to ${maskPhone(phone)}`);
       } catch (smsErr) {
         console.error(`[NOTIFY_FAILURE] SMS fallback also failed for ${maskPhone(phone)}: ${smsErr.message}`);
