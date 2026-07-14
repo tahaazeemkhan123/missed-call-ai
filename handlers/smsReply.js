@@ -47,7 +47,8 @@ async function extractSummary(history) {
     messages: [{ role: 'user', content: transcript }],
   });
 
-  return JSON.parse(response.content[0].text);
+  const raw = response.content[0].text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  return JSON.parse(raw);
 }
 
 const OWNER_LEAD_SUMMARY_SID = 'HX07a69b90ad2f2e1922b4f0f03298a408';
